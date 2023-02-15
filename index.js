@@ -1,115 +1,82 @@
 const express = require("express")
-const cors = require('cors')
-const morgan = require('morgan')
+const cors = require("cors")
+const morgan = require("morgan")
 const app = express()
 
-
-//order of middlewares matters
 app.use(express.json())
 app.use(cors())
-morgan.token('body', (req) => JSON.stringify(req.body))
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms - :body'))
+morgan.token("body", req => JSON.stringify(req.body))
+app.use(
+  morgan(
+    ":method :url :status :res[content-length] - :response-time ms - :body"
+  )
+)
 
-//-----------------------
-
-
-let people = [
+let notes = [
   {
     id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
+    content: "HTML is easy",
+    important: true,
   },
   {
     id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
+    content: "Browser can execute only JavaScript",
+    important: false,
   },
   {
     id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
+    content: "GET and POST are the most important methods of HTTP protocol",
+    important: true,
   },
 ]
 
-app.get('/api/persons', (req, res) => {
-  res.json(people) //convert from js object to json object
+app.get("/", (req, res) => {
+  res.json(notes)
 })
 
-app.get('/info', (req, res) => {
-  res.end(
-    `<p> 
-            Phonebook has info for ${people.length} people
-            </br>
-            ${new Date()}
-    </p>`
-  )
+app.get("/api/notes/:id", (req, res) => {
+  const id = req.params.id
+  const note = notes.find(note => note.id === parseInt(id))
+  return note ? res.json(note) : res.status(404).end()
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  const requestedPerson = people.find(p => p.id === id)
-
-  requestedPerson
-    ? res.json(requestedPerson)
-    : res.status(404).end("Person does not exist")
+app.delete("/api/notes/:id", (req, res) => {
+  const id = Number(req.params.id)
+  notes = notes.filter(note => note.id !== id)
+  console.log(notes)
+  res.status(204).end()
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  const requestedPerson = people.find(p => p.id === id)
+const generateId = () =>
+  notes.length === 0 ? 1 : Math.max(...notes.map(note => note.id)) + 1
 
-  if(requestedPerson)
-  {
-    people = people.filter(p => p.id !== requestedPerson.id)
-    console.log(people)
-    res.status(204).end()
-  } 
-  else res.status(404).end("Person does not exist")
-})
-
-const generateRandomId = () => Math.floor(Math.random() * 99999)
-
-app.post('/api/persons', (req, res) => {
+app.post("/api/notes", (req, res) => {
   const body = req.body
-  const name = req.body.name
-  const number = req.body.number
 
-
-  if(!name || !number) {
+  if (!body.content) {
     res.status(400).json({
-      error: 'name or number is missing'
+      error: "Missing content",
     })
     return
   }
 
-  if(people.find(p => p.name === name)) {
-    res.status(400).json({
-      error: 'that name already exists in the phonebook'
-    })
-    return
+  const note = {
+    id: generateId(),
+    content: body.content,
+    important: body.important || false,
+    date: new Date(),
   }
 
-  const newPerson = {
-    ...req.body,
-    id: generateRandomId(),
-  }
-
-  people = people.concat(newPerson)
-  res.status(201).end()
+  notes = notes.concat(note)
+  res.json(note)
 })
 
-//must be after all routes are defined
 app.use((req, res, next) => {
-  res.status(404).send({error: 'unknown endpoint'})
+  res.status(404).send({ error: "unknown endpoint" })
 })
 
 const PORT = process.env.PORT || 3001
 
 app.listen(PORT, () => {
-  console.log('Listening on port ', PORT)
+  console.log("Listening on port ", PORT)
 })
