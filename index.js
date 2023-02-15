@@ -71,6 +71,8 @@ app.post("/api/notes", (req, res) => {
   res.json(note)
 })
 
+console.log('amogus')
+
 app.use((req, res, next) => {
   res.status(404).send({ error: "unknown endpoint" })
 })
